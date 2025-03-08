@@ -4,6 +4,7 @@ import datetime
 import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
+from enum import Enum
 from providerId import providerInfo
 from availableSlots import get_slots
 
@@ -11,6 +12,35 @@ from availableSlots import get_slots
 app = Flask(__name__)
 
 uk_timezone = pytz.timezone('Europe/London')
+
+class ReasonId(Enum):
+    COMPOSITE_BONDING_CONSULTATION = "0-28-418"
+    COSMETIC_CONSULTATION = "0-33-418"
+    TOOTH_WHITENING_CONSULTATION = "0-36-418"
+    INVISALIGN_CONSULTATION = "0-42-418"
+    ORTHODONTIC_CONSULTATION = "0-44-418"
+    HYGIENE_30_MINS = "0-46-418"
+    CFAST_CONSULTATION = "0-43-418"
+    AIR_POLISH = "0-54-418"
+    HYGIENE_40_MINS = "0-47-418"
+    TREATMENT_COORDINATOR_IMPLANTS = "0-48-418"
+    TREATMENT_COORDINATOR_INVISALIGN = "0-49-418"
+    TREATMENT_COORDINATOR_WHITENING = "0-50-418"
+    HYGIENE_20_MINS = "0-53-418"
+    PRIVATE_EXAM = "0-55-418"
+
+class UserType(Enum):
+    NEW_PATIENT = "NewPatient"
+    EXISTING_PATIENT = "ExistingPatient"
+
+class ProviderId(Enum):
+    AYEZA_TARIQ = "AYEZA"
+    CALUM_MCCALL = "CALUM"
+    DR_REBECCA_SMITH = "REB"
+    MUQTADEER_SYED = "MS"
+    EDWARD = "HYG"
+    MEENAKSHI_VENKATESH = "MV"
+    SMILE_COORDINATOR = "TCO"
 
 @app.route('/')
 def home() -> str:
@@ -26,11 +56,11 @@ def get_external_data() -> Dict[str, Any]:
 
     timeNow = int(local_time.timestamp() * 1000)
 
-    start_of_day = local_time + datetime.timedelta(days=19)
-    start_of_day_midnight = start_of_day.replace(hour=0, minute=0, second=0, microsecond=0)
-    timeStart = timeNow
+    # start_of_day = local_time + datetime.timedelta(days=19)
+    start_of_day_midnight = local_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    timeStart = int(start_of_day_midnight.timestamp() * 1000)
 
-    end_of_day = local_time + datetime.timedelta(days=25)
+    end_of_day = local_time + datetime.timedelta(days=7)
     end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
     timeEnd = int(end_of_day_midnight.timestamp() * 1000)
 
@@ -39,41 +69,15 @@ def get_external_data() -> Dict[str, Any]:
     end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
     timeEnd2 = int(end_of_day_midnight.timestamp() * 1000)
     
-
-    reasonIdData = {
-        "Composite Bonding Consultation": "0-28-418",
-        "Cosmetic Consultation": "0-33-418",
-        "Tooth whitening Consultation": "0-36-418",
-        "Invisalign Consultation": "0-42-418",
-        "Orthodontic Consultation": "0-44-418",
-        "hygiene 30 mins": "0-46-418",
-        "Cfast Consultation": "0-43-418",
-        "Air Polish": "0-54-418",
-        "Hygiene 40 mins": "0-47-418",
-        "Treatment Co-Ordinator Implants": "0-48-418",
-        "Treatment Co-Ordinator Invisalign": "0-49-418",
-        "Treatment Co-Ordinator Whitening": "0-50-418",
-        "Hygiene 20 mins": "0-53-418",
-        "Private Exam": "0-55-418",
-    }
-
-    reasonId = reasonIdData["Composite Bonding Consultation"]
-    # userType = "ExistingPatient"
-    userType = "NewPatient"
-    providerId = providerInfo(timeNow, timeStart, timeEnd, reasonId, userType)
-
-    providerData = {
-        "Ayeza Tariq": "AYEZA",
-        "Calum McCall": "CALUM",
-        "Dr Rebecca Smith": "REB",
-        "Muqtadeer Syed": "MS",
-        "Edward": "HYG",
-        "Meenakshi Venkatesh": "MV",
-        "Smile Coordinator": "TCO",
-    }
-    # providerName = providerData["Ayeza Tariq"]
+    
+    reasonId = ReasonId.COMPOSITE_BONDING_CONSULTATION.value  # Access the value of the reasonId enum
+    userType = UserType.NEW_PATIENT.value  # Enum value for userType
+    # providerId = ProviderId.AYEZA_TARIQ.value
+    providerId = providerInfo(timeNow, timeStart, timeEnd2, reasonId, userType)
     providerName = ""
-    slotsAvailable = get_slots(timeNow, timeStart, timeEnd2, reasonId, userType, providerName)
+    page = 4
+
+    slotsAvailable = get_slots(timeNow, timeStart, timeEnd, reasonId, userType, providerName, page)
     return slotsAvailable
 
 

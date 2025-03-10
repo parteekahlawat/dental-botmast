@@ -5,6 +5,7 @@ import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
 
+uk_timezone = pytz.timezone('Europe/London')
 
 def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userType: str, providerName: str, page: int) -> Dict[str, Any]:
     providerLink=""
@@ -25,15 +26,26 @@ def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userTyp
                     name = ''
                     price = ''
                     deposit = ''
+                    starting = event.get("startTime")
+                    duration = event.get("duration")
+                    starting = datetime.datetime.fromisoformat(starting)
+                    date = starting.astimezone(uk_timezone).strftime("%d")
+                    month = starting.astimezone(uk_timezone).strftime("%B")
+                    year = starting.astimezone(uk_timezone).strftime("%Y")
+                    time = starting.astimezone(uk_timezone).strftime("%I:%M %p")
+                    
+                    uk_end_time = starting.astimezone(uk_timezone) + datetime.timedelta(minutes=duration)
+                    end_time = uk_end_time.strftime("%I:%M %p")
                     for i in event.get("resourceEvents", []):
                         name = i.get("resourceName")
                         price = i.get("salesInformation", {}).get("price", {}).get("amount")
                         deposit = i.get("salesInformation", {}).get("deposit", {}).get("amount")
                     page_list.append({
-                        "Id": i.get('id'),
+                        "Id": event.get('id'),
                         "Name": name,
-                        "Start Time": i.get("startTime"),
-                        "Duration": i.get("duration"),
+                        "Start Time": f"{date} {month} {year}, {time}",
+                        "End Time": f"{date} {month} {year}, {end_time}",
+                        "Duration": duration,
                         "Price": price,
                         "Deposit Amount": deposit,
                     })

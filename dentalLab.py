@@ -7,7 +7,7 @@ from typing import Dict, Any
 from enum import Enum
 from providerId import providerInfo
 from availableSlots import get_slots
-
+from providerId import startTime
 # Initialize Flask application
 app = Flask(__name__)
 
@@ -55,14 +55,9 @@ def get_external_data() -> Dict[str, Any]:
     local_time = datetime.datetime.now(uk_timezone)
 
     timeNow = int(local_time.timestamp() * 1000)
-
-    # start_of_day = local_time + datetime.timedelta(days=19)
+    
     start_of_day_midnight = local_time.replace(hour=0, minute=0, second=0, microsecond=0)
     timeStart = int(start_of_day_midnight.timestamp() * 1000)
-
-    end_of_day = local_time + datetime.timedelta(days=7)
-    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
-    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
 
 
     end_of_day = datetime.datetime.fromtimestamp(timeNow / 1000) + relativedelta(months=6)
@@ -70,14 +65,24 @@ def get_external_data() -> Dict[str, Any]:
     timeEnd2 = int(end_of_day_midnight.timestamp() * 1000)
     
     
-    reasonId = ReasonId.COMPOSITE_BONDING_CONSULTATION.value  # Access the value of the reasonId enum
-    userType = UserType.NEW_PATIENT.value  # Enum value for userType
-    # providerId = ProviderId.AYEZA_TARIQ.value
-    providerId = providerInfo(timeNow, timeStart, timeEnd2, reasonId, userType)
-    providerName = ""
-    page = 4
+    reasonId = ReasonId.COMPOSITE_BONDING_CONSULTATION.value
+    userType = UserType.NEW_PATIENT.value 
 
-    slotsAvailable = get_slots(timeNow, timeStart, timeEnd, reasonId, userType, providerName, page)
+    providerId = providerInfo(timeNow, timeStart, timeEnd2, reasonId, userType)
+
+    providerName = ""
+    
+    page = 4
+    
+    startingTime = startTime(timeNow, timeStart, timeEnd2, reasonId, userType)
+    
+    startingTime = datetime.datetime.fromisoformat(startingTime)
+
+    end_of_day = startingTime + datetime.timedelta(days=7)
+    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
+    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
+
+    slotsAvailable = get_slots(timeNow, int(startingTime.timestamp() * 1000), timeEnd, reasonId, userType, providerName, page)
     return slotsAvailable
 
 

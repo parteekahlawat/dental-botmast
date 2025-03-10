@@ -1,6 +1,6 @@
 import requests
 from flask import jsonify
-import datetime
+from datetime import datetime
 import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
@@ -18,7 +18,7 @@ def providerInfo(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, user
         response = requests.get(url)
         # print(response.json())
         if response.status_code == 200:
-            data = response.json()  # Assuming the response is in JSON format
+            data = response.json() 
 
             for event in data:
                 name = ''
@@ -29,16 +29,53 @@ def providerInfo(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, user
                     price = i.get("salesInformation", {}).get("price", {}).get("amount")
                     deposit = i.get("salesInformation", {}).get("deposit", {}).get("amount")
                 providers.append({
-                    "Id": i.get('id'),
+                    "Id": event.get('id'),
                     "Name": name,
-                    "Start Time": i.get("startTime"),
-                    "Duration": i.get("duration"),
+                    "Start Time": event.get("startTime"),
+                    "Duration": event.get("duration"),
                     "Price": price,
                     "Deposit Amount": deposit,
                 })
+                    # Sort providers by startTime
+            providers.sort(key=lambda x: datetime.fromisoformat(x["Start Time"].replace("Z", "+00:00")))
+
+            # Get the earliest start time
+            first_start_time = providers[0]["Start Time"] if providers else None
+
+            print("First Start Time:", first_start_time)
             return jsonify(providers)
         else:
             return jsonify({"error": "Failed to fetch data", "status_code": response.status_code}), 500
 
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+def startTime(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userType: str) -> str:
+    
+    url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&eventType=Proposed&patientId=5339fe99-9b2a-4706-8932-6035c505ec61&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=true&isShapeChange=true"
+    
+    providers = []
+    try:
+        response = requests.get(url)
+        # print(response.json())
+        if response.status_code == 200:
+            data = response.json() 
+
+            for event in data:
+                name = ''
+                price = ''
+                deposit = ''
+                providers.append({
+                    "Start Time": event.get("startTime"),
+                })
+            providers.sort(key=lambda x: datetime.fromisoformat(x["Start Time"].replace("Z", "+00:00")))
+
+            first_start_time = providers[0]["Start Time"] if providers else None
+
+            print("First Start Time:", first_start_time)
+            return first_start_time
+        else:
+            return jsonify({"error": "Failed to fetch data", "status_code": response.status_code}), 500
+    
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500

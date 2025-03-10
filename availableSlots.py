@@ -56,6 +56,7 @@ def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userTyp
             else:
                 slot_list.append({"error": "Failed to fetch data", "status_code": response.status_code, "Page":pageNo})
             
+            
             timeStart = timeEnd
             end_of_day = datetime.datetime.fromtimestamp(timeEnd / 1000)  + datetime.timedelta(days=7)
             end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)

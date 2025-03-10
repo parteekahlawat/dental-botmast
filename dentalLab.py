@@ -47,11 +47,12 @@ def home() -> str:
     return "Welcome to the Flask Backend!"
 
 
-@app.route('/data')
+@app.route('/data', methods = ["GET"])
 def get_external_data() -> Dict[str, Any]:
     """
     Fetch external data and return provider data.
     """
+    page = request.args.get("page", default=1, type=int)
     local_time = datetime.datetime.now(uk_timezone)
 
     timeNow = int(local_time.timestamp() * 1000)
@@ -72,7 +73,7 @@ def get_external_data() -> Dict[str, Any]:
 
     providerName = ""
     
-    page = 4
+    # page = 4
     
     startingTime = startTime(timeNow, timeStart, timeEnd2, reasonId, userType)
     

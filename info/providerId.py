@@ -5,15 +5,29 @@ import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
 
-def providerInfo(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userType: str) -> Dict[str, Any]:
+list_provider = {
+    "AYEZA": "AYEZA TARIQ",
+    "CALUM": "CALUM MCCALL",
+    "REB": "DR REBECCA SMITH",
+    "MS": "MUQTADEER SYED",
+    "HYG": "EDWARD",
+    "MV": "MEENAKSHI VENKATESH",
+    "TCO": "SMILE COORDINATOR"
+}
 
-    # end_of_day = datetime.datetime.fromtimestamp(timeNow / 1000) + relativedelta(months=6)
-    # end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
-    # timeEnd2 = int(end_of_day_midnight.timestamp() * 1000)
+def providerInfo(timeNow: int, reasonId: str, userType: str, patientId: str) -> Dict[str, Any]:
     
-    url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&eventType=Proposed&patientId=5339fe99-9b2a-4706-8932-6035c505ec61&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=true&isShapeChange=true"
+    end_of_day = datetime.fromtimestamp(timeNow / 1000) + relativedelta(months=6)
+    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
+    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
+    
+    start_of_day_midnight = datetime.fromtimestamp(timeNow / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+    timeStart = int(start_of_day_midnight.timestamp() * 1000)
+    
+    url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&eventType=Proposed&patientId={patientId}&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=true&isShapeChange=true"
     
     providers = []
+
     try:
         response = requests.get(url)
         # print(response.json())
@@ -30,7 +44,7 @@ def providerInfo(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, user
                     deposit = i.get("salesInformation", {}).get("deposit", {}).get("amount")
                 providers.append({
                     "Id": event.get('id'),
-                    "Name": name,
+                    "Name": list_provider[name],
                     "Start Time": event.get("startTime"),
                     "Duration": event.get("duration"),
                     "Price": price,
@@ -50,7 +64,14 @@ def providerInfo(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, user
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
-def startTime(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userType: str) -> str:
+def startTime(timeNow: int, reasonId: str, userType: str) -> str:
+    
+    end_of_day = datetime.fromtimestamp(timeNow / 1000) + relativedelta(months=6)
+    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
+    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
+    
+    start_of_day_midnight = datetime.fromtimestamp(timeNow / 1000).replace(hour=0, minute=0, second=0, microsecond=0)
+    timeStart = int(start_of_day_midnight.timestamp() * 1000)
     
     url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&eventType=Proposed&patientId=5339fe99-9b2a-4706-8932-6035c505ec61&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=true&isShapeChange=true"
     

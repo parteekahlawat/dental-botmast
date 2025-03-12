@@ -4,10 +4,20 @@ import datetime
 import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
+from info.providerId import startTime
 
 uk_timezone = pytz.timezone('Europe/London')
 
-def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userType: str, providerName: str, page: int) -> Dict[str, Any]:
+def get_slots(timeNow: int, reasonId: str, userType: str, providerName: str, page: int, patientId: str) -> Dict[str, Any]:
+
+    startingTime = startTime(timeNow, reasonId, userType)
+    startingTime = datetime.datetime.fromisoformat(startingTime).astimezone(uk_timezone)
+    timeStart = int(startingTime.timestamp() * 1000)
+
+    end_of_day = startingTime + datetime.timedelta(days=7)
+    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
+    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
+    
     providerLink=""
     if providerName!="":
         providerLink = f"&providerId={providerName}"
@@ -15,7 +25,7 @@ def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userTyp
     pageNo = 1
     while(page):
         try:
-            url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&patientId=0fa43773-b8bd-4b1a-8c5a-2f0580f03673&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=false{providerLink}"
+            url = f"https://uk.mydentalhub.online/v31/events?timestamp={timeNow}&startDay={timeStart}&endDay={timeEnd}&patientId={patientId}&payorType=Private&patientType={userType}&reasonId={reasonId}&practiceId=UKSHQ02&firstEventForProvider=false{providerLink}"
             response = requests.get(url)
             if response.status_code == 200:
                 data = response.json()
@@ -53,6 +63,7 @@ def get_slots(timeNow: int, timeStart: int, timeEnd: int, reasonId: str, userTyp
                             "Duration": duration,
                             "Price": price,
                             "Deposit Amount": deposit,
+                            "value":event
                         })
                     slot_list.append({
                         "Page":pageNo,

@@ -4,86 +4,101 @@ import datetime
 import pytz
 from dateutil.relativedelta import relativedelta
 from typing import Dict, Any
-from enum import Enum
-from providerId import providerInfo
-from availableSlots import get_slots
-from providerId import startTime
+
+
+from info.providerId import providerInfo
+from info.availableSlots import get_slots
+from info.providerId import startTime
+from info.extractId import extractId
+
+from appointmentDetailsConfirm import appointmentDetails
+from fillDetail import fillDetails
+from enums.enum import ProviderId
+from enums.enum import UserType
+from enums.enum import ReasonId
 # Initialize Flask application
 app = Flask(__name__)
 
 uk_timezone = pytz.timezone('Europe/London')
 
-class ReasonId(Enum):
-    COMPOSITE_BONDING_CONSULTATION = "0-28-418"
-    COSMETIC_CONSULTATION = "0-33-418"
-    TOOTH_WHITENING_CONSULTATION = "0-36-418"
-    INVISALIGN_CONSULTATION = "0-42-418"
-    ORTHODONTIC_CONSULTATION = "0-44-418"
-    HYGIENE_30_MINS = "0-46-418"
-    CFAST_CONSULTATION = "0-43-418"
-    AIR_POLISH = "0-54-418"
-    HYGIENE_40_MINS = "0-47-418"
-    TREATMENT_COORDINATOR_IMPLANTS = "0-48-418"
-    TREATMENT_COORDINATOR_INVISALIGN = "0-49-418"
-    TREATMENT_COORDINATOR_WHITENING = "0-50-418"
-    HYGIENE_20_MINS = "0-53-418"
-    PRIVATE_EXAM = "0-55-418"
 
-class UserType(Enum):
-    NEW_PATIENT = "NewPatient"
-    EXISTING_PATIENT = "ExistingPatient"
-
-class ProviderId(Enum):
-    AYEZA_TARIQ = "AYEZA"
-    CALUM_MCCALL = "CALUM"
-    DR_REBECCA_SMITH = "REB"
-    MUQTADEER_SYED = "MS"
-    EDWARD = "HYG"
-    MEENAKSHI_VENKATESH = "MV"
-    SMILE_COORDINATOR = "TCO"
 
 @app.route('/')
 def home() -> str:
     return "Welcome to the Flask Backend!"
 
-
-@app.route('/data', methods = ["GET"])
-def get_external_data() -> Dict[str, Any]:
-    """
-    Fetch external data and return provider data.
-    """
-    page = request.args.get("page", default=1, type=int)
+@app.route('/provider-details', methods=["GET"])
+def provider():
+    
     local_time = datetime.datetime.now(uk_timezone)
-
     timeNow = int(local_time.timestamp() * 1000)
-    
-    start_of_day_midnight = local_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    timeStart = int(start_of_day_midnight.timestamp() * 1000)
-
-
-    end_of_day = datetime.datetime.fromtimestamp(timeNow / 1000) + relativedelta(months=6)
-    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
-    timeEnd2 = int(end_of_day_midnight.timestamp() * 1000)
-    
     
     reasonId = ReasonId.COMPOSITE_BONDING_CONSULTATION.value
     userType = UserType.NEW_PATIENT.value 
-
-    providerId = providerInfo(timeNow, timeStart, timeEnd2, reasonId, userType)
-
-    providerName = ""
     
-    # page = 4
-    
-    startingTime = startTime(timeNow, timeStart, timeEnd2, reasonId, userType)
-    
-    startingTime = datetime.datetime.fromisoformat(startingTime)
+    providerId = providerInfo(timeNow, reasonId, userType, patientId="1a669786-3064-4047-a0a3-4df2732a57d9")
+    return providerId["providers"]
 
-    end_of_day = startingTime + datetime.timedelta(days=7)
-    end_of_day_midnight = end_of_day.replace(hour=23, minute=59, second=59, microsecond=999999)
-    timeEnd = int(end_of_day_midnight.timestamp() * 1000)
 
-    slotsAvailable = get_slots(timeNow, int(startingTime.timestamp() * 1000), timeEnd, reasonId, userType, providerName, page)
+@app.route('/data', methods = ["GET"])
+def get_external_data() -> Dict[str, Any]:
+
+    # arguments added
+    page = request.args.get("page", default=1, type=int)
+    providerName = request.args.get("providerName", default="", type=str)
+    
+    # Now time
+    local_time = datetime.datetime.now(uk_timezone)
+    timeNow = int(local_time.timestamp() * 1000)
+    # print(timeNow)
+    
+    # extracted = extractId(timeNow)
+
+    # patientId = extracted["Patient"]["Body"]["name"]
+    patientId = "1a669786-3064-4047-a0a3-4df2732a57d9"
+
+    reasonId = ReasonId.COMPOSITE_BONDING_CONSULTATION.value
+    userType = UserType.NEW_PATIENT.value 
+
+    providerId = providerInfo(timeNow, reasonId, userType, patientId)
+
+    slotsAvailable = get_slots(timeNow, reasonId, userType, providerName, page, patientId)
+    # return slotsAvailable
+    selectedDate = "2025-03-31T13:50:00.000Z"
+    
+    appointmentUrl = extracted["Appointment"]["Link"]
+    appointmentPayload = extracted["Appointment"]["Body"]
+    eventScheduled = slotsAvailable["value"]
+    appointmentDetails(appointmentUrl, appointmentPayload, selectedDate, eventScheduled)
+    
+    
+    patientUrl = extracted["Patient"]["Link"]
+    patientPayload = extracted["Patient"]["Body"]
+    fillDetails(patientUrl, patientPayload, fname="", lname="", dob="", mobile="", email="" )
+    
+
+    # otp_details_value = {
+    # "iso5218Sex": "MALE",
+    # "callback": false,
+    # "internalPatientId": "a4835efb-c22a-4da8-80fb-52f463da05dd",
+    # "codeAlreadyVerified": false,
+    # "emailChannel": false,
+    # "smsChannel": false,
+    # "acceptedTermsOfUse": true,
+    # "acceptedMarketingConsent": false,
+    # "acceptedTermsOfUseChangeDate": "2025-03-11T12:39:55.582Z",
+    # "firstname": "Demo",
+    # "lastname": "LastDemo",
+    # "dateofbirth": 248054400000,
+    # "emailaddress": "demo@demo.com",
+    # "mobilenumber": "+447809246818",
+    # "hasEnteredVerificationCode":true,
+    # "verificationCode":{otp}
+    # }
+    
+    
+    
+    
     return slotsAvailable
 
 
